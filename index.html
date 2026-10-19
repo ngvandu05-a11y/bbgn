@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo Biên Bản Giao Nhận & Nghiệm Thu Vật Tư</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Font Times New Roman cho preview */
+        .font-times {
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        /* Định dạng trang A4 Preview */
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm 15mm 20mm 25mm; /* Chuẩn hành chính: Trên 20, Phải 15, Dưới 20, Trái 25 */
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            box-sizing: border-box;
+            color: #000;
+            line-height: 1.45;
+            font-size: 13pt;
+        }
+
+        /* CSS Print Setup - Chuẩn Hành chính Công vụ */
+        @page {
+            size: A4 portrait;
+            margin: 20mm 15mm 20mm 25mm; /* Top Right Bottom Left */
+            @bottom-center {
+                content: "Trang " counter(page);
+                font-family: 'Times New Roman', Times, serif;
+                font-size: 11pt;
+            }
+        }
+
+        @media print {
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-container {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .a4-page {
+                box-shadow: none !important;
+                width: 100% !important;
+                min-height: auto !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+            /* Phân trang số trang chuẩn CSS */
+            .print-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                text-align: center;
+                font-family: 'Times New Roman', Times, serif;
+                font-size: 11pt;
+            }
+        }
+
+        /* Custom scrollbar cho sidebar form */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col font-sans">
+
+    <!-- Header Navigation Bar -->
+    <header class="bg-slate-900 text-white shadow-md no-print sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white">
+                    <i class="fa-solid fa-file-contract text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Hệ Thống Tạo Biên Bản Giao Nhận</h1>
+                    <p class="text-xs text-slate-400">Chuẩn Mẫu Văn Bản Hành Chính & Nghiệm Thu Vật Tư</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="loadSampleData()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg transition flex items-center gap-1.5 border border-slate-700">
+                    <i class="fa-solid fa-arrows-rotate text-xs"></i> Tải Mẫu Mẫu
+                </button>
+                <button onclick="window.print()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i> In / Xuất PDF
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Split Screen Container -->
+    <div class="flex-1 flex overflow-hidden print-container">
+        
+        <!-- LEFT SIDEBAR: INPUT FORM CONTROLS -->
+        <aside class="w-full lg:w-[480px] xl:w-[520px] bg-white border-r border-slate-200 flex flex-col h-[calc(100vh-61px)] no-print">
+            <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                <h2 class="font-semibold text-slate-700 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-blue-600"></i> Thông Tin Biên Bản
+                </h2>
+                <span class="text-xs bg-blue-100 text-blue-700 font-medium px-2 py-0.5 rounded-full">Đang tự động đồng bộ</span>
+            </div>
+
+            <!-- Form Content Body -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+                
+                <!-- 1. Căn cứ & Thời gian -->
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-blue-500"></i> Căn cứ & Địa điểm
+                    </h3>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Căn cứ theo Hợp đồng số</label>
+                            <input type="text" id="input_hd_so" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="12/2026/HĐ-MB">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Tên bên ký hợp đồng</label>
+                                <input type="text" id="input_hd_ben" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Công ty ABC">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Ngày ký HĐ</label>
+                                <input type="text" id="input_hd_ngay" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="10 tháng 01 năm 2026">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Thời gian lập BB</label>
+                                <input type="text" id="input_bb_ngay" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="19 tháng 10 năm 2026">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Địa điểm giao nhận</label>
+                                <input type="text" id="input_bb_diadiem" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Kho hàng Bến Nghé, Q.1, TP.HCM">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Bên Nhận (Bên A) -->
+                <div class="bg-blue-50/50 p-3.5 rounded-xl border border-blue-100 space-y-3">
+                    <h3 class="text-sm font-bold text-blue-900 uppercase tracking-wide flex items-center gap-2">
+                        <i class="fa-solid fa-building-user text-blue-600"></i> I. BÊN NHẬN (BÊN A)
+                    </h3>
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Tên Công ty / Đơn vị A</label>
+                            <input type="text" id="input_bena_ten" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="CÔNG TY TNHH PHÁT TRIỂN NGUYÊN PHÁT">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Địa chỉ</label>
+                            <input type="text" id="input_bena_diachi" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Đại diện (Chính)</label>
+                                <input type="text" id="input_bena_daidien" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Ông Nguyễn Văn A">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Chức vụ đại diện chính</label>
+                                <input type="text" id="input_bena_chucvu" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Giám đốc">
+                            </div>
+                        </div>
+
+                        <!-- Danh sách thành viên bên A -->
+                        <div class="pt-2">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-semibold text-slate-700">Các thành viên tham gia (Bên A):</span>
+                                <button onclick="addMember('A')" class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                                    <i class="fa-solid fa-plus"></i> Thêm thành viên
+                                </button>
+                            </div>
+                            <div id="members_A_container" class="space-y-2">
+                                <!-- Dynamic dynamic rows -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Bên Giao (Bên B) -->
+                <div class="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100 space-y-3">
+                    <h3 class="text-sm font-bold text-emerald-900 uppercase tracking-wide flex items-center gap-2">
+                        <i class="fa-solid fa-truck-ramp-box text-emerald-600"></i> II. BÊN GIAO (BÊN B)
+                    </h3>
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Tên Công ty / Đơn vị B</label>
+                            <input type="text" id="input_benb_ten" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="CÔNG TY CỔ PHẦN THIẾT BỊ CÔNG NGHIỆP TÂN TIẾN">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Địa chỉ</label>
+                            <input type="text" id="input_benb_diachi" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="456 Xa Lộ Hà Nội, P. An Phú, TP. Thủ Đức, TP.HCM">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Điện thoại</label>
+                                <input type="text" id="input_benb_sdt" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="028.3829.xxxx">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Fax</label>
+                                <input type="text" id="input_benb_fax" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="028.3829.yyyy">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Đại diện (Chính)</label>
+                                <input type="text" id="input_benb_daidien" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="Bà Trần Thị B">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Chức vụ đại diện chính</label>
+                                <input type="text" id="input_benb_chucvu" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="Trưởng Phòng Kinh Doanh">
+                            </div>
+                        </div>
+
+                        <!-- Danh sách thành viên bên B -->
+                        <div class="pt-2">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-semibold text-slate-700">Các thành viên tham gia (Bên B):</span>
+                                <button onclick="addMember('B')" class="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1">
+                                    <i class="fa-solid fa-plus"></i> Thêm thành viên
+                                </button>
+                            </div>
+                            <div id="members_B_container" class="space-y-2">
+                                <!-- Dynamic dynamic rows -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Danh mục Hàng hóa / Vật tư -->
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked text-amber-500"></i> III. DANH MỤC HÀNG HÓA
+                        </h3>
+                        <button onclick="addItem()" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-md shadow-sm transition flex items-center gap-1">
+                            <i class="fa-solid fa-plus"></i> Thêm hàng hóa
+                        </button>
+                    </div>
+
+                    <div id="items_container" class="space-y-3">
+                        <!-- Dynamic Item Input Forms -->
+                    </div>
+                </div>
+
+                <!-- 5. Kết luận -->
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-check text-indigo-500"></i> IV. KẾT LUẬN & ĐIỀU KHOẢN
+                    </h3>
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Tên nhóm vật tư/thiết bị</label>
+                            <input type="text" id="input_kl_tenvattu" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="vật tư, thiết bị điện công nghiệp">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Năm sản xuất</label>
+                                <input type="text" id="input_kl_namsx" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="2026">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Ngày chính thức nghiệm thu</label>
+                                <input type="text" id="input_kl_ngaynt" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="19/10/2026">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Số lượng bản lập</label>
+                            <input type="text" id="input_kl_soban" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="02">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- RIGHT SIDEBAR: LIVE A4 PREVIEW -->
+        <main class="flex-1 bg-slate-200 overflow-y-auto p-4 lg:p-8 flex justify-center custom-scrollbar">
+            
+            <!-- A4 Document Wrapper -->
+            <div id="document_preview" class="a4-page font-times text-justify">
+                
+                <!-- HEADER: Quốc Hiệu - Tiêu Ngữ -->
+                <div class="flex justify-between items-start mb-6">
+                    <div class="text-center font-bold text-[12pt] uppercase leading-tight">
+                        <span id="pv_bena_ten_short">CÔNG TY TNHH PHÁT TRIỂN NGUYÊN PHÁT</span>
+                        <div class="border-b border-black w-24 mx-auto mt-1"></div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-bold text-[12pt] uppercase leading-tight">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                        <div class="font-bold text-[12pt]">Độc lập – Tự do – Hạnh phúc</div>
+                        <div class="border-b border-black w-36 mx-auto mt-1"></div>
+                    </div>
+                </div>
+
+                <!-- TITLE -->
+                <div class="text-center my-6">
+                    <h1 class="font-bold text-[15pt] uppercase leading-snug">BIÊN BẢN GIAO NHẬN & NGHIỆM THU VẬT TƯ</h1>
+                    <div class="italic text-[12pt] mt-1">
+                        Căn cứ theo Hợp đồng số: <span id="pv_hd_so" class="font-semibold">....</span>, giữa <span id="pv_hd_ben">....</span> và <span id="pv_bena_ten_hd">....</span>, đã ký ngày <span id="pv_hd_ngay">... tháng ... năm 20...</span>
+                    </div>
+                </div>
+
+                <!-- THỜI GIAN & ĐỊA ĐIỂM -->
+                <div class="mb-4 text-[13pt]">
+                    Hôm nay, ngày <span id="pv_bb_ngay">..... tháng ... năm 20...</span>, tại <span id="pv_bb_diadiem">.............</span>, chúng tôi gồm:
+                </div>
+
+                <!-- BÊN A -->
+                <div class="mb-4">
+                    <div class="font-bold uppercase text-[13pt] flex justify-between">
+                        <span>I/ BÊN NHẬN: <span id="pv_bena_ten">....................................................................</span></span>
+                    </div>
+                    <div class="italic mb-1">(Sau đây gọi là bên A)</div>
+                    <div class="space-y-1 pl-2">
+                        <div>Địa chỉ: <span id="pv_bena_diachi">....................................................................................................</span></div>
+                        <div>Đại diện: <span id="pv_bena_daidien" class="font-semibold">....................</span> &nbsp;&nbsp;&nbsp;&nbsp;Chức vụ: <span id="pv_bena_chucvu">....................</span></div>
+                        <div id="pv_members_A_list" class="space-y-1">
+                            <!-- Dynamic Members A -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BÊN B -->
+                <div class="mb-5">
+                    <div class="font-bold uppercase text-[13pt]">
+                        II/ BÊN GIAO: <span id="pv_benb_ten">....................................................................</span>
+                    </div>
+                    <div class="italic mb-1">(Sau đây gọi là bên B)</div>
+                    <div class="space-y-1 pl-2">
+                        <div>Địa chỉ: <span id="pv_benb_diachi">....................................................................................................</span></div>
+                        <div>Điện thoại: <span id="pv_benb_sdt">........................</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fax: <span id="pv_benb_fax">........................</span></div>
+                        <div>Đại diện: <span id="pv_benb_daidien" class="font-semibold">....................</span> &nbsp;&nbsp;&nbsp;&nbsp;Chức vụ: <span id="pv_benb_chucvu">....................</span></div>
+                        <div id="pv_members_B_list" class="space-y-1">
+                            <!-- Dynamic Members B -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3 text-[13pt]">
+                    Hai bên nhất trí cùng tiến hành giao nhận, nghiệm thu hàng hóa với nội dung như sau:
+                </div>
+
+                <!-- DANH MỤC HÀNG HÓA TABLE -->
+                <div class="mb-4">
+                    <div class="font-bold uppercase text-[13pt] mb-2">III/ DANH MỤC HÀNG HÓA GIAO NHẬN GỒM:</div>
+                    
+                    <table class="w-full border-collapse border border-black text-center text-[11pt]">
+                        <thead>
+                            <tr class="bg-slate-100 font-bold">
+                                <th class="border border-black px-1.5 py-1.5 w-8">TT</th>
+                                <th class="border border-black px-2 py-1.5 text-left">Tên hàng hóa</th>
+                                <th class="border border-black px-1 py-1.5 w-14">ĐVT</th>
+                                <th class="border border-black px-1.5 py-1.5 w-24">Quy cách đóng gói</th>
+                                <th class="border border-black px-1.5 py-1.5 w-24">Hãng/Nước SX</th>
+                                <th class="border border-black px-1 py-1.5 w-20">Hạn SD</th>
+                                <th class="border border-black px-1 py-1.5 w-14">SL</th>
+                                <th class="border border-black px-1.5 py-1.5 w-20 text-right">Đơn giá (Đ)</th>
+                                <th class="border border-black px-1.5 py-1.5 w-24 text-right">Thành tiền (Đ)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pv_items_tbody">
+                            <!-- Dynamic Table Rows -->
+                        </tbody>
+                        <tfoot id="pv_items_tfoot">
+                            <!-- Total Row if price exists -->
+                        </tfoot>
+                    </table>
+                    
+                    <!-- Số tiền bằng chữ (Tự động hiển thị nếu có tiền) -->
+                    <div id="pv_total_words_container" class="mt-2 text-[12pt] italic font-semibold hidden">
+                        Bằng chữ: <span id="pv_total_words">Không đồng</span>
+                    </div>
+                </div>
+
+                <!-- KẾT LUẬN -->
+                <div class="mb-6 space-y-1.5 text-[13pt]">
+                    <div class="font-bold uppercase text-[13pt] mb-1">IV/ KẾT LUẬN:</div>
+                    <div class="pl-2 flex items-start">
+                        <span class="mr-1.5">–</span>
+                        <div>Toàn bộ <span id="pv_kl_tenvattu" class="font-medium">vật tư</span> nói trên mới 100%, sản xuất năm <span id="pv_kl_namsx">2026</span>, còn nguyên đai nguyên kiện, đúng chủng loại, mẫu mã, quy cách đóng gói, thông số kỹ thuật như trong Hợp đồng số: <span id="pv_kl_hdso" class="font-medium">....</span>, đã ký ngày <span id="pv_kl_hdngay">...</span>.</div>
+                    </div>
+                    <div class="pl-2 flex items-start">
+                        <span class="mr-1.5">–</span>
+                        <div>Bên A đã nhận đủ số lượng hàng hóa mà bên B đã giao nhận theo mục III.</div>
+                    </div>
+                    <div class="pl-2 flex items-start">
+                        <span class="mr-1.5">–</span>
+                        <div>Toàn bộ hàng hóa nói trên được chính thức giao nhận và nghiệm thu kể từ ngày <span id="pv_kl_ngaynt">.../.../20...</span> Các bên nhất trí đồng ý ký biên bản nghiệm thu đưa vào sử dụng.</div>
+                    </div>
+                    <div class="pl-2 flex items-start">
+                        <span class="mr-1.5">–</span>
+                        <div>Biên bản này được lập thành <span id="pv_kl_soban">02</span> bản. Mỗi bên giữ 01 bản có giá trị pháp lý như nhau.</div>
+                    </div>
+                </div>
+
+                <!-- CHỮ KÝ 2 BÊN -->
+                <div class="mt-8 pt-2 grid grid-cols-2 text-center text-[12pt] page-break-inside-avoid">
+                    <div class="px-2">
+                        <div class="font-bold uppercase text-[13pt]">ĐẠI DIỆN BÊN A</div>
+                        <div class="italic text-slate-600 text-[11pt] mb-16">(Ký, đóng dấu và ghi rõ họ tên)</div>
+                        <div id="pv_sign_a_name" class="font-bold text-[13pt]"></div>
+                    </div>
+                    <div class="px-2">
+                        <div class="font-bold uppercase text-[13pt]">ĐẠI DIỆN BÊN B</div>
+                        <div class="italic text-slate-600 text-[11pt] mb-16">(Ký, đóng dấu và ghi rõ họ tên)</div>
+                        <div id="pv_sign_b_name" class="font-bold text-[13pt]"></div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // State Object
+        let state = {
+            hd_so: "105/2026/HĐ-TB",
+            hd_ben: "Công ty Cổ Phần Thiết Bị Tân Tiến",
+            hd_ngay: "12 tháng 10 năm 2026",
+            bb_ngay: "19 tháng 10 năm 2026",
+            bb_diadiem: "Kho trung chuyển Tân Bình, TP. Hồ Chí Minh",
+            bena: {
+                ten: "CÔNG TY TNHH PHÁT TRIỂN NGUYÊN PHÁT",
+                diachi: "Số 123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
+                daidien: "Nguyễn Văn An",
+                chucvu: "Giám Đốc Kỹ Thuật",
+                members: [
+                    { name: "Trần Thị Cúc", role: "Kế Toán Trưởng" },
+                    { name: "Lê Văn Điệp", role: "Cán Bộ Quản Lý Kho" }
+                ]
+            },
+            benb: {
+                ten: "CÔNG TY CỔ PHẦN THIẾT BỊ CÔNG NGHIỆP TÂN TIẾN",
+                diachi: "Lô C2, Đường số 3, KCN Cát Lái, Phường Thạnh Mỹ Lợi, TP. Thủ Đức, TP.HCM",
+                sdt: "028.3742.8888",
+                fax: "028.3742.9999",
+                daidien: "Trần Minh Tiến",
+                chucvu: "Phó Giám Đốc Kinh Doanh",
+                members: [
+                    { name: "Phạm Quốc Hùng", role: "Kỹ Thuật Viên Giao Hàng" }
+                ]
+            },
+            items: [
+                { name: "Cảm biến áp suất Danfoss MBS 3000", dvt: "Cái", quycach: "Hộp 1 cái", hangsx: "Danfoss/Đan Mạch", hansd: "N/A", qty: 5, price: 2500000 },
+                { name: "Van điện từ SMC 220V", dvt: "Bộ", quycach: "Thùng 10 bộ", hangsx: "SMC/Nhật Bản", hansd: "N/A", qty: 10, price: 1200000 },
+                { name: "Dầu nhớt công nghiệp Shell Tellus S2", dvt: "Phuy", quycach: "Phuy 209 Lit", hangsx: "Shell/Việt Nam", hansd: "24 tháng", qty: 2, price: 8500000 }
+            ],
+            kl: {
+                tenvattu: "thiết bị và vật tư tự động hóa",
+                namsx: "2026",
+                ngaynt: "19/10/2026",
+                soban: "02"
+            }
+        };
+
+        // Initialize App
+        window.onload = function() {
+            bindFormInputs();
+            renderMembersForms('A');
+            renderMembersForms('B');
+            renderItemsForms();
+            updatePreview();
+        };
+
+        // Helper: Convert Number to Vietnamese Words
+        function numberToVietnameseWords(number) {
+            if (number === 0) return "Không đồng";
+            const units = ["", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+            const scale = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
+
+            function readTriple(num) {
+                let hundred = Math.floor(num / 100);
+                let ten = Math.floor((num % 100) / 10);
+                let unit = num % 10;
+                let result = "";
+
+                if (hundred > 0 || num >= 100) {
+                    result += units[hundred] + " trăm ";
+                }
+
+                if (ten > 1) {
+                    result += units[ten] + " mươi ";
+                    if (unit === 1) result += "mốt ";
+                    else if (unit === 5) result += "lăm ";
+                    else if (unit > 0) result += units[unit] + " ";
+                } else if (ten === 1) {
+                    result += "mười ";
+                    if (unit === 1) result += "một ";
+                    else if (unit === 5) result += "lăm ";
+                    else if (unit > 0) result += units[unit] + " ";
+                } else if (hundred > 0 && unit > 0) {
+                    result += "lẻ ";
+                    if (unit === 5) result += "năm ";
+                    else result += units[unit] + " ";
+                } else if (unit > 0) {
+                    result += units[unit] + " ";
+                }
+
+                return result;
+            }
+
+            let strNum = Math.floor(number).toString();
+            let len = strNum.length;
+            let groups = [];
+
+            while (len > 0) {
+                groups.push(parseInt(strNum.substring(Math.max(0, len - 3), len)));
+                len -= 3;
+            }
+
+            let words = [];
+            for (let i = groups.length - 1; i >= 0; i--) {
+                let triple = groups[i];
+                if (triple > 0) {
+                    let tripleStr = readTriple(triple);
+                    words.push(tripleStr + scale[i]);
+                }
+            }
+
+            let result = words.join(" ").trim();
+            result = result.charAt(0).toUpperCase() + result.slice(1) + " đồng";
+            return result.replace(/\s+/g, ' ');
+        }
+
+        // Helper: Format Thousand Separators
+        function formatNumber(num) {
+            if (num === null || num === undefined || isNaN(num) || num === '') return '';
+            return new Intl.NumberFormat('vi-VN').format(num);
+        }
+
+        function parseFormattedNumber(str) {
+            if (!str) return 0;
+            return parseFloat(str.toString().replace(/\./g, '').replace(/,/g, '')) || 0;
+        }
+
+        // Bind Main Inputs
+        function bindFormInputs() {
+            // General
+            document.getElementById('input_hd_so').value = state.hd_so;
+            document.getElementById('input_hd_ben').value = state.hd_ben;
+            document.getElementById('input_hd_ngay').value = state.hd_ngay;
+            document.getElementById('input_bb_ngay').value = state.bb_ngay;
+            document.getElementById('input_bb_diadiem').value = state.bb_diadiem;
+
+            // Bên A
+            document.getElementById('input_bena_ten').value = state.bena.ten;
+            document.getElementById('input_bena_diachi').value = state.bena.diachi;
+            document.getElementById('input_bena_daidien').value = state.bena.daidien;
+            document.getElementById('input_bena_chucvu').value = state.bena.chucvu;
+
+            // Bên B
+            document.getElementById('input_benb_ten').value = state.benb.ten;
+            document.getElementById('input_benb_diachi').value = state.benb.diachi;
+            document.getElementById('input_benb_sdt').value = state.benb.sdt;
+            document.getElementById('input_benb_fax').value = state.benb.fax;
+            document.getElementById('input_benb_daidien').value = state.benb.daidien;
+            document.getElementById('input_benb_chucvu').value = state.benb.chucvu;
+
+            // Kết luận
+            document.getElementById('input_kl_tenvattu').value = state.kl.tenvattu;
+            document.getElementById('input_kl_namsx').value = state.kl.namsx;
+            document.getElementById('input_kl_ngaynt').value = state.kl.ngaynt;
+            document.getElementById('input_kl_soban').value = state.kl.soban;
+
+            // Event Listeners for Live Updates
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('input', syncStateFromForm);
+            });
+        }
+
+        // Sync State with Form Inputs
+        function syncStateFromForm() {
+            state.hd_so = document.getElementById('input_hd_so').value;
+            state.hd_ben = document.getElementById('input_hd_ben').value;
+            state.hd_ngay = document.getElementById('input_hd_ngay').value;
+            state.bb_ngay = document.getElementById('input_bb_ngay').value;
+            state.bb_diadiem = document.getElementById('input_bb_diadiem').value;
+
+            state.bena.ten = document.getElementById('input_bena_ten').value;
+            state.bena.diachi = document.getElementById('input_bena_diachi').value;
+            state.bena.daidien = document.getElementById('input_bena_daidien').value;
+            state.bena.chucvu = document.getElementById('input_bena_chucvu').value;
+
+            state.benb.ten = document.getElementById('input_benb_ten').value;
+            state.benb.diachi = document.getElementById('input_benb_diachi').value;
+            state.benb.sdt = document.getElementById('input_benb_sdt').value;
+            state.benb.fax = document.getElementById('input_benb_fax').value;
+            state.benb.daidien = document.getElementById('input_benb_daidien').value;
+            state.benb.chucvu = document.getElementById('input_benb_chucvu').value;
+
+            state.kl.tenvattu = document.getElementById('input_kl_tenvattu').value;
+            state.kl.namsx = document.getElementById('input_kl_namsx').value;
+            state.kl.ngaynt = document.getElementById('input_kl_ngaynt').value;
+            state.kl.soban = document.getElementById('input_kl_soban').value;
+
+            updatePreview();
+        }
+
+        // Members Handlers
+        function renderMembersForms(party) {
+            const container = document.getElementById(`members_${party}_container`);
+            container.innerHTML = '';
+
+            const members = party === 'A' ? state.bena.members : state.benb.members;
+
+            members.forEach((m, idx) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2';
+                div.innerHTML = `
+                    <input type="text" placeholder="(Ông/Bà)" value="${m.name}" oninput="updateMember('${party}', ${idx}, 'name', this.value)" class="flex-1 px-2.5 py-1 border border-slate-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <input type="text" placeholder="Chức vụ" value="${m.role}" oninput="updateMember('${party}', ${idx}, 'role', this.value)" class="flex-1 px-2.5 py-1 border border-slate-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <button onclick="removeMember('${party}', ${idx})" class="text-red-500 hover:text-red-700 px-1 text-xs"><i class="fa-solid fa-trash-can"></i></button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addMember(party) {
+            const members = party === 'A' ? state.bena.members : state.benb.members;
+            members.push({ name: '', role: '' });
+            renderMembersForms(party);
+            updatePreview();
+        }
+
+        function updateMember(party, index, field, value) {
+            const members = party === 'A' ? state.bena.members : state.benb.members;
+            members[index][field] = value;
+            updatePreview();
+        }
+
+        function removeMember(party, index) {
+            const members = party === 'A' ? state.bena.members : state.benb.members;
+            members.splice(index, 1);
+            renderMembersForms(party);
+            updatePreview();
+        }
+
+        // Items Handlers
+        function renderItemsForms() {
+            const container = document.getElementById('items_container');
+            container.innerHTML = '';
+
+            state.items.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'p-3 bg-white border border-slate-200 rounded-lg shadow-sm space-y-2 relative group';
+                div.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-1">
+                        <span class="text-xs font-bold text-slate-500">Hàng hóa #${idx + 1}</span>
+                        <button onclick="removeItem(${idx})" class="text-xs text-red-500 hover:text-red-700 flex items-center gap-1">
+                            <i class="fa-solid fa-xmark"></i> Xóa
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Tên hàng hóa</label>
+                        <input type="text" value="${item.name}" oninput="updateItem(${idx}, 'name', this.value)" class="w-full px-2.5 py-1 border border-slate-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-500 mb-0.5">ĐVT</label>
+                            <input type="text" value="${item.dvt}" oninput="updateItem(${idx}, 'dvt', this.value)" class="w-full px-2.5 py-1 border border-slate-300 rounded text-xs focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Quy cách</label>
+                            <input type="text" value="${item.quycach}" oninput="updateItem(${idx}, 'quycach', this.value)" class="w-full px-2.5 py-1 border border-slate-300 rounded text-xs focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Hạn SD</label>
+                            <input type="text" value="${item.hansd}" oninput="updateItem(${idx}, 'hansd', this.value)" class="w-full px-2.5 py-1 border border-slate-300 rounded text-xs focus:outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Hãng / Nước SX</label>
+                        <input type="text" value="${item.hangsx}" oninput="updateItem(${idx}, 'hangsx', this.value)" class="w-full px-2.5 py-1 border border-slate-300 rounded text-xs focus:outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Số lượng</label>
+                            <input type="number" min="0" value="${item.qty}" oninput="updateItem(${idx}, 'qty', parseFloat(this.value) || 0)" class="w-full px-2.5 py-1 border border-slate-300 rounded text-xs focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Đơn giá (VNĐ)</label>
+                            <input type="text" value="${formatNumber(item.price)}" oninput="updateItemPrice(${idx}, this.value)" class="w-full px-2.5 py-1 border border-slate-300 rounded text-xs focus:outline-none">
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addItem() {
+            state.items.push({
+                name: '',
+                dvt: '',
+                quycach: '',
+                hangsx: '',
+                hansd: '',
+                qty: 1,
+                price: 0
+            });
+            renderItemsForms();
+            updatePreview();
+        }
+
+        function updateItem(index, field, value) {
+            state.items[index][field] = value;
+            updatePreview();
+        }
+
+        function updateItemPrice(index, valStr) {
+            const numericVal = parseFormattedNumber(valStr);
+            state.items[index].price = numericVal;
+            // Update value display with thousand separators
+            event.target.value = formatNumber(numericVal);
+            updatePreview();
+        }
+
+        function removeItem(index) {
+            state.items.splice(index, 1);
+            renderItemsForms();
+            updatePreview();
+        }
+
+        // UPDATE LIVE PREVIEW HTML
+        function updatePreview() {
+            // General Info
+            document.getElementById('pv_hd_so').innerText = state.hd_so || '....';
+            document.getElementById('pv_hd_ben').innerText = state.hd_ben || '....';
+            document.getElementById('pv_bena_ten_hd').innerText = state.bena.ten || '....';
+            document.getElementById('pv_hd_ngay').innerText = state.hd_ngay || '... tháng ... năm 20...';
+            document.getElementById('pv_bb_ngay').innerText = state.bb_ngay || '..... tháng ... năm 20...';
+            document.getElementById('pv_bb_diadiem').innerText = state.bb_diadiem || '.............';
+
+            // Bên A
+            document.getElementById('pv_bena_ten_short').innerText = state.bena.ten || 'TÊN CÔNG TY BÊN A';
+            document.getElementById('pv_bena_ten').innerText = state.bena.ten || '....................................................................';
+            document.getElementById('pv_bena_diachi').innerText = state.bena.diachi || '....................................................................................................';
+            document.getElementById('pv_bena_daidien').innerText = state.bena.daidien || '....................';
+            document.getElementById('pv_bena_chucvu').innerText = state.bena.chucvu || '....................';
+            document.getElementById('pv_sign_a_name').innerText = state.bena.daidien || '';
+
+            // Render extra members A
+            const pvMembersA = document.getElementById('pv_members_A_list');
+            pvMembersA.innerHTML = state.bena.members.map(m => `
+                <div>(Ông/Bà): <span class="font-semibold">${m.name || '....................'}</span> &nbsp;&nbsp;&nbsp;&nbsp;Chức vụ: <span>${m.role || '....................'}</span></div>
+            `).join('');
+
+            // Bên B
+            document.getElementById('pv_benb_ten').innerText = state.benb.ten || '....................................................................';
+            document.getElementById('pv_benb_diachi').innerText = state.benb.diachi || '....................................................................................................';
+            document.getElementById('pv_benb_sdt').innerText = state.benb.sdt || '........................';
+            document.getElementById('pv_benb_fax').innerText = state.benb.fax || '........................';
+            document.getElementById('pv_benb_daidien').innerText = state.benb.daidien || '....................';
+            document.getElementById('pv_benb_chucvu').innerText = state.benb.chucvu || '....................';
+            document.getElementById('pv_sign_b_name').innerText = state.benb.daidien || '';
+
+            // Render extra members B
+            const pvMembersB = document.getElementById('pv_members_B_list');
+            pvMembersB.innerHTML = state.benb.members.map(m => `
+                <div>(Ông/Bà): <span class="font-semibold">${m.name || '....................'}</span> &nbsp;&nbsp;&nbsp;&nbsp;Chức vụ: <span>${m.role || '....................'}</span></div>
+            `).join('');
+
+            // Items Table
+            const tbody = document.getElementById('pv_items_tbody');
+            const tfoot = document.getElementById('pv_items_tfoot');
+            tbody.innerHTML = '';
+            tfoot.innerHTML = '';
+
+            let grandTotal = 0;
+            let hasPrice = false;
+
+            if (state.items.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="border border-black py-4 italic text-slate-400">Chưa có danh mục hàng hóa nào</td>
+                    </tr>
+                `;
+            } else {
+                state.items.forEach((item, idx) => {
+                    const total = (item.qty || 0) * (item.price || 0);
+                    if (item.price > 0) hasPrice = true;
+                    grandTotal += total;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="border border-black px-1 py-1 text-center">${idx + 1}</td>
+                        <td class="border border-black px-2 py-1 text-left font-medium">${item.name || ''}</td>
+                        <td class="border border-black px-1 py-1 text-center">${item.dvt || ''}</td>
+                        <td class="border border-black px-1 py-1 text-center">${item.quycach || ''}</td>
+                        <td class="border border-black px-1 py-1 text-center">${item.hangsx || ''}</td>
+                        <td class="border border-black px-1 py-1 text-center">${item.hansd || ''}</td>
+                        <td class="border border-black px-1 py-1 text-center font-semibold">${item.qty || 0}</td>
+                        <td class="border border-black px-1.5 py-1 text-right">${item.price ? formatNumber(item.price) : '-'}</td>
+                        <td class="border border-black px-1.5 py-1 text-right font-semibold">${total ? formatNumber(total) : '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Render Footer Total if prices are inputted
+                if (hasPrice) {
+                    const trFoot = document.createElement('tr');
+                    trFoot.className = "font-bold bg-slate-50";
+                    trFoot.innerHTML = `
+                        <td colspan="8" class="border border-black px-2 py-1.5 text-right uppercase">Tổng Cộng Thành Tiền:</td>
+                        <td class="border border-black px-1.5 py-1.5 text-right text-black">${formatNumber(grandTotal)}</td>
+                    `;
+                    tfoot.appendChild(trFoot);
+
+                    // Show total in words
+                    document.getElementById('pv_total_words_container').classList.remove('hidden');
+                    document.getElementById('pv_total_words').innerText = numberToVietnameseWords(grandTotal);
+                } else {
+                    document.getElementById('pv_total_words_container').classList.add('hidden');
+                }
+            }
+
+            // Conclusion
+            document.getElementById('pv_kl_tenvattu').innerText = state.kl.tenvattu || '................';
+            document.getElementById('pv_kl_namsx').innerText = state.kl.namsx || '....';
+            document.getElementById('pv_kl_hdso').innerText = state.hd_so || '....';
+            document.getElementById('pv_kl_hdngay').innerText = state.hd_ngay || '...';
+            document.getElementById('pv_kl_ngaynt').innerText = state.kl.ngaynt || '.../.../20...';
+            document.getElementById('pv_kl_soban').innerText = state.kl.soban || '02';
+        }
+
+        // Load Sample Data Button
+        function loadSampleData() {
+            state = {
+                hd_so: "128/2026/HĐMB-VT",
+                hd_ben: "Công ty TNHH Kỹ Thuật Điện Cơ Hà Nội",
+                hd_ngay: "05 tháng 02 năm 2026",
+                bb_ngay: "19 tháng 10 năm 2026",
+                bb_diadiem: "Công trình Nhà máy Sữa Vinamilk, Bình Dương",
+                bena: {
+                    ten: "CÔNG TY CỔ PHẦN XÂY DỰNG & THI CÔNG TOÀN CẦU",
+                    diachi: "Tầng 12, Tòa nhà Bitexco, Q.1, TP. Hồ Chí Minh",
+                    daidien: "Trần Văn Phú",
+                    chucvu: "Chỉ Huy Trưởng Công Trình",
+                    members: [
+                        { name: "Lê Hoàng Nam", role: "Kỹ Sư Giám Sát" }
+                    ]
+                },
+                benb: {
+                    ten: "CÔNG TY TNHH KỸ THUẬT ĐIỆN CƠ HÀ NỘI",
+                    diachi: "Phường Dịch Vọng, Quận Cầu Giấy, Hà Nội",
+                    sdt: "024.3999.6666",
+                    fax: "024.3999.7777",
+                    daidien: "Nguyễn Thị Phương",
+                    chucvu: "Giám Đốc Dự Án",
+                    members: [
+                        { name: "Đỗ Mạnh Hùng", role: "Cán Bộ Giao Nhận" }
+                    ]
+                },
+                items: [
+                    { name: "Tủ điện phân phối trung thế 24kV", dvt: "Bộ", quycach: "Nguyên kiện", hangsx: "Schneider/Pháp", hansd: "N/A", qty: 2, price: 145000000 },
+                    { name: "Cáp điện lực hạ thế CADIVI 4x95mm2", dvt: "Mét", quycach: "Cuộn 500m", hangsx: "CADIVI/Việt Nam", hansd: "N/A", qty: 350, price: 420000 },
+                    { name: "Aptomat khối MCCB 3P 250A 36kA", dvt: "Cái", quycach: "Hộp 1 cái", hangsx: "Mitsubishi/Nhật", hansd: "N/A", qty: 8, price: 3850000 }
+                ],
+                kl: {
+                    tenvattu: "vật tư, thiết bị hệ thống điện công nghiệp",
+                    namsx: "2026",
+                    ngaynt: "19/10/2026",
+                    soban: "04"
+                }
+            };
+
+            bindFormInputs();
+            renderMembersForms('A');
+            renderMembersForms('B');
+            renderItemsForms();
+            updatePreview();
+        }
+    </script>
+</body>
+</html>
